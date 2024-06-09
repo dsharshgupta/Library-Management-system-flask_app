@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User UI</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nabla&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  {% with messages = get_flashed_messages(with_categories=True) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  {% if category =='error' %}
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% else %}
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+
+
+
+  <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page"
+              href="{{ url_for('route.requested_books', id=current_user.id) }}?search_term={{ search_term }}">Requests</a>
+          </li>
+          <li>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('route.library_stats',id=current_user.id)}}">Library Stats</a>
+          </li>
+          <li>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('route.library_issued',id=current_user.id)}}">Issued Books</a>
+          </li>
+          <li>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('route.library_feedback',id = current_user.id)}}">Feedbacks</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="sectionEditDropdown" role="button"
+              data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Section Edit
+            </a>
+            <div class="dropdown-menu" aria-labelledby="sectionEditDropdown">
+              <a class="nav-link btn dropdown-item" data-bs-toggle="modal" data-bs-target="#addSectionModal">Add
+                Section</a>
+              <a class="nav-link btn dropdown-item" data-bs-toggle="modal" data-bs-target="#updateSectionModal">Update
+                Section</a>
+              <a class="nav-link btn dropdown-item" data-bs-toggle="modal" data-bs-target="#deleteSectionModal">Delete
+                Section</a>
+            </div>
+          </li>
+
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="bookEditDropdown" role="button" data-bs-toggle="dropdown"
+              aria-haspopup="true" aria-expanded="false">
+              Book Edit
+            </a>
+            <div class="dropdown-menu" aria-labelledby="bookEditDropdown">
+              <a class="nav-link btn dropdown-item" data-bs-toggle="modal" data-bs-target="#addBookModal">Add Book</a>
+              <a class="nav-link btn dropdown-item" data-bs-toggle="modal" data-bs-target="#updateBookModal">Update
+                Book</a>
+              <a class="nav-link btn dropdown-item" data-bs-toggle="modal" data-bs-target="#deleteBookModal">Delete
+                Book</a>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="ml-auto">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="btn" href="{{ url_for('route.logout') }}">Logout</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+
+
+
+
+  <br>
+  <div class="availablebooks">
+    <h1 style="background-color: rgb(239, 225, 207);">Available ebooks in library</h1>
+  </div>
+  <div class="container mt-3">
+    <form class="row g-3" method="GET" action="{{ url_for('route.librarian_dashboard', id=current_user.id) }}">
+      <div class="col-md-4">
+        <label for="section_filter" class="form-label">Filter by Section:</label>
+        <select class="form-select" id="section_filter" name="section_filter">
+          <option value="">All Sections</option>
+          {% for section in sections %}
+          <option value="{{ section.id }}" {% if section.id==selected_section_filter %}selected{% endif %}>{{
+            section.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="section_filter" class="form-label">Search Book or author:</label>
+        <input class="form-control" type="text" placeholder="Search books" aria-label="Search" name="query">
+      </div>
+      <div class="col-md-1">
+        <br>
+        <br>
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+      </div>
+      <div class="col-md-1">
+        <br>
+        <br>
+        <a href="{{ url_for('route.librarian_dashboard', id=current_user.id) }}"
+          class="btn btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="container mt-3">
+    <div class="row">
+      {% if books %}
+      {% for book in books %}
+      {% if (not request.args.section_filter or book.section.id == (request.args.section_filter|int))
+      and (not request.args.query or request.args.query.lower() in book.title.lower() or re22quest.args.query.lower() in
+      book.author.lower()) %}
+      <div class="col-md-3 mb-4">
+        <div class="card">
+          <img src="data:image/png;base64,{{ book.book_img_encoded }}" class="card-img-top" alt="{{ book.title }}">
+          <div class="card-body">
+            <h5 class="card-title">{{ book.title }}</h5>
+            <p class="card-text">Author: {{ book.author }}</p>
+            <p class="card-text">Section: {{ book.section.name }}</p>
+            <p class="card-text">Price: {{ book.price }}</p>
+            <a href="{{ book.pdf_link }}" class="btn btn-primary" target="_blank">Read Now</a>
+            <a href="{{ url_for('route.download_pdf', book_id=book.id) }}" class="btn btn-success" download>Download
+              PDF</a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% else %}
+      <h2>No Books Available</h2>
+      {% endif %}
+    </div>
+  </div>
+
+
+
+
+
+
+
+
+  <div class="row">
+    <div class="modal fade" id="addSectionModal" tabindex="-1" aria-labelledby="addSectionModal" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="addSectionLabel">Add Section</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body d-flex justify-content-center">
+            <div class="card-body">
+              <form method="POST" action="{{url_for('route.add_section')}}" class="mt-4">
+                <div class="form-group">
+                  <label for="name">Section Name:</label>
+                  <input type="text" class="form-control" id="name" name="name" placeholder="Enter Section name"
+                    required>
+                  <label for="name">Description:</label>
+                  <input type="text" class="form-control" id="Description" name="Description"
+                    placeholder="Enter Section Description" required>
+                </div>
+                <br>
+                <button type="submit" class="btn btn-primary">Create Section</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="modal fade" id="updateSectionModal" tabindex="-1" aria-labelledby="updateSectionModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="updateSectionModalLabel">Update Section</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body d-flex justify-content-center">
+            <div class="card-body">
+              <!-- Form for updating section -->
+              <form method="POST" action="{{ url_for('route.update_section') }}" class="mt-4">
+                <div class="form-group">
+                  <label for="update_section_id">Select Section to Update:</label>
+                  <select class="form-control" id="update_section_id" name="update_section_id" required>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}">{{ section.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="update_name">New Section Name:</label>
+                  <input type="text" class="form-control" id="update_name" name="update_name"
+                    placeholder="Enter New Section name" required>
+                  <label for="update_description">New Section Description:</label>
+                  <input type="text" class="form-control" id="update_description" name="update_description"
+                    placeholder="Enter New Section Description" required>
+                </div>
+
+                <br>
+                <button type="submit" class="btn btn-primary">Update Section</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="deleteSectionModal" tabindex="-1" aria-labelledby="deleteSectionModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="deleteSectionModalLabel">Delete Section</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body d-flex justify-content-center">
+            <div class="card-body">
+              <!-- Form for deleting section -->
+              <form method="POST" action="{{ url_for('route.delete_section') }}" class="mt-4">
+                <div class="form-group">
+                  <label for="delete_section_id">Select Section to Delete:</label>
+                  <select class="form-control" id="delete_section_id" name="delete_section_id" required>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}">{{ section.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <br>
+                <button type="submit" class="btn btn-danger">Delete Section</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Update Book Modal -->
+    <div class="modal fade" id="updateBookModal" tabindex="-1" aria-labelledby="updateBookModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="updateBookModalLabel">Update Book</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body d-flex justify-content-center">
+            <div class="card-body">
+              <!-- Form for updating book -->
+              <form method="POST" action="{{ url_for('route.update_book') }}" class="mt-4"
+                enctype="multipart/form-data">
+                <div class="form-group">
+                  <label for="update_book_id">Select Book to Update:</label>
+                  <select class="form-control" id="update_book_id" name="update_book_id" required>
+                    {% for book in books %}
+                    <option value="{{ book.id }}">{{ book.title }} by {{ book.author }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="update_title">New Title:</label>
+                  <input type="text" class="form-control" id="update_title" name="update_title"
+                    placeholder="Enter New Book Title" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="update_author">New Author:</label>
+                  <input type="text" class="form-control" id="update_author" name="update_author"
+                    placeholder="Enter New Author Name" required>
+                </div>
+
+
+                <div class="form-group">
+                  <label for="update_price">New Price:</label>
+                  <input type="text" class="form-control" id="update_price" name="update_price"
+                    placeholder="Enter New Price" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="update_pdf_link">New PDF Link:</label>
+                  <input type="text" class="form-control" id="update_pdf_link" name="update_pdf_link"
+                    placeholder="Enter New PDF Link" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="update_book_img">New Book Image:</label>
+                  <input type="file" class="form-control" id="update_book_img" name="update_book_img" accept="image/*"
+                    required>
+                </div>
+
+                <div class="form-group">
+                  <label for="update_book_pdf">New Book PDF:</label>
+                  <input type="file" class="form-control" id="update_book_pdf" name="update_book_pdf" accept=".pdf"
+                    required>
+                </div>
+
+                <div class="form-group">
+                  <label for="update_section_id">New Section:</label>
+                  <select class="form-control" id="update_section_id" name="update_section_id" required>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}">{{ section.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <br>
+                <button type="submit" class="btn btn-primary">Update Book</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="modal fade" id="deleteBookModal" tabindex="-1" aria-labelledby="deleteBookModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="deleteBookModalLabel">Delete Book</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body d-flex justify-content-center">
+            <div class="card-body">
+              <!-- Form for deleting book -->
+              <form method="POST" action="{{ url_for('route.delete_book') }}" class="mt-4">
+                <div class="form-group">
+                  <label for="delete_book_id">Select Book to Delete:</label>
+                  <select class="form-control" id="delete_book_id" name="delete_book_id" required>
+                    {% for book in books %}
+                    <option value="{{ book.id }}">{{ book.title }} by {{ book.author }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <br>
+                <button type="submit" class="btn btn-danger">Delete Book</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+    <div class="modal fade" id="addBookModal" tabindex="-1" aria-labelledby="addBookModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="addBookModalLabel">Add Book</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body d-flex justify-content-center">
+            <div class="card-body">
+              <form method="POST" action="{{ url_for('route.add_book') }}" class="mt-4" enctype="multipart/form-data">
+                <div class="form-group">
+                  <label for="title">Title:</label>
+                  <input type="text" class="form-control" id="title" name="title" placeholder="Enter Book title"
+                    required>
+                </div>
+
+                <div class="form-group">
+                  <label for="author">Author:</label>
+                  <input type="text" class="form-control" id="author" name="author" placeholder="Enter Author name"
+                    required>
+                </div>
+                <div class="form-group">
+                  <label for="price">Price:</label>
+                  <input type="text" class="form-control" id="price" name="price" placeholder="Enter Price" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="pdf_link">PDF Link:</label>
+                  <input type="text" class="form-control" id="pdf_link" name="pdf_link" placeholder="Enter PDF link"
+                    required>
+                </div>
+
+                <div class="form-group">
+                  <label for="book_img">Book Image:</label>
+                  <input type="file" class="form-control" id="book_img" name="book_img" accept="image/*" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="book_pdf">Book PDF:</label>
+                  <input type="file" class="form-control" id="book_pdf" name="book_pdf" accept=".pdf" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="section_id">Section:</label>
+                  <select class="form-control" id="section_id" name="section_id" required>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}">{{ section.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <br>
+                <button type="submit" class="btn btn-primary">Create Book</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to central library</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+</head>
+
+<body>
+  {% with messages = get_flashed_messages(with_categories=True) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  {% if category =='error' %}
+  <div class="alert alert-danger alter-dismissible fade show " role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% else %}
+  <div class="alert alert-success alter-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+
+
+  <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
+        aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+          <a class="nav-link active" aria-current="page" data-bs-toggle="modal" data-bs-target="#profileModal">Profile</a>
+          <a class="nav-link active" aria-current="page" href="{{ url_for('route.my_books',id=current_user.id)}}">MyBooks</a>
+          <a class="nav-link active" aria-current="page" href="{{ url_for('route.stats',id=current_user.id)}}">Stats</a>
+        </div>
+      </div>
+      <div class="ml-auto">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="btn" href="{{ url_for('route.logout') }}">Logout</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+
+
+
+  <br>
+  <div class="availablebooks">
+    <h1 style="background-color: rgb(239, 225, 207);">Available ebooks in library</h1>
+  </div>
+  <div class="container mt-3">
+    <form class="row g-3" method="GET" action="{{ url_for('route.user_dashboard', id=current_user.id) }}">
+      <div class="col-md-4">
+        <label for="section_filter" class="form-label">Filter by Section:</label>
+        <select class="form-select" id="section_filter" name="section_filter">
+          <option value="">All Sections</option>
+          {% for section in sections %}
+          <option value="{{ section.id }}" {% if section.id==selected_section_filter %}selected{% endif %}>{{
+            section.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="section_filter" class="form-label">Search Book:</label>
+        <input class="form-control" type="text" placeholder="Search books" aria-label="Search" name="query">
+      </div>
+      <div class="col-md-1">
+        <br>
+        <br>
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+      </div>
+      <div class="col-md-1">
+        <br>
+        <br>
+        <a href="{{ url_for('route.user_dashboard', id=current_user.id) }}" class="btn btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="container mt-3">
+    <div class="row">
+      {% if books %}
+        {% for book in books %}
+        {% if (not request.args.section_filter or book.section.id == (request.args.section_filter|int))
+        and (not request.args.query or request.args.query.lower() in book.title.lower() or request.args.query.lower() in
+        book.author.lower()) %}
+        <div class="col-md-3 mb-4">
+          <div class="card">
+            <img src="data:image/png;base64,{{ book.book_img_encoded }}" class="card-img-top" alt="{{ book.title }}">
+            <div class="card-body">
+              <h5 class="card-title">{{ book.title }}</h5>
+              <p class="card-text">Author: {{ book.author }}</p>
+              <p class="card-text">Section: {{ book.section.name }}</p>
+              <p class="card-text">Price: {{ book.price }}</p>
+              <a href="{{ url_for('route.request_book',book_id=book.id) }}" class="btn btn-success">Request Book</a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      {% else %}
+        <h2>No Books Available</h2>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="exampleModalLabel"> {{ user.username }} Profile</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            {% if user.user_img %}
+              <img src="data:image/png;base64,{{ user.user_img_encoded }}" class="card-img-top" alt="{{ user.name }}">
+              <br>
+              <br>
+              <a href="{{ url_for('route.delete_profile_photo', id = user.id)}}" class="btn btn-danger">Delete profile photo</a>
+            {% else %}
+              <form method="POST" action="{{ url_for('route.upload_user_image', id=user.id) }}" class="mt-4"
+              enctype="multipart/form-data">
+              <div class="form-group">
+                <label for="upload_user_img">New Book Image:</label>
+                <input type="file" class="form-control" id="upload_user_img" name="upload_user_img" accept="image/*"
+                  required>
+              </div>
+                <button type="submit" class="btn btn-primary">Upload Image</button>
+              </form>
+            {% endif %}
+              <br>
+              <br>
+              <p class="card-text">Name: {{ user.username }}</p>
+              <p class="card-text">No. of requested books : {{ request_count }}</p>
+              <p class="card-text">No. of issued books : {{ issued_count }}</p>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
